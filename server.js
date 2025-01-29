@@ -17,6 +17,10 @@ const customer = require('./Routes/customer/customer');
 const transactions = require('./Routes/customer/transaction');
 const chat = require('./Routes/customer/chat');
 
+const s_detail = require('./Routes/supplier/S_detail');
+const supplier = require('./Routes/supplier/supplier');
+const suppconnect = require('./Routes/supplier/supp-connect');
+
 const seebycustomer = require('./Routes/look_by_customer/see_by_customer')
 const connect = require('./Routes/look_by_customer/connect');
 
@@ -34,6 +38,10 @@ app.use('/api', customer);
 app.use('/api', transactions);
 app.use('/api', chat);
 
+app.use('/api', s_detail);
+app.use('/api', supplier);
+app.use('/api', suppconnect);
+
 app.use('/api', seebycustomer);
 app.use('/api', connect);
 
@@ -43,7 +51,8 @@ app.use('/api', loanProfile);
 
 
 app.use(bodyParser.json());
-app.use(cors({ origin: 'http://localhost:3000' }));
+
+app.use(cors({ origin: 'https://account-transaction.web.app' }));
 
 
 // Middleware
