@@ -4,6 +4,10 @@ const router = express.Router();
 const axios = require('axios');
 require('dotenv').config();
 
+const User = require('../../models/user');
+const jwt = require('jsonwebtoken');
+const jwtSecret = process.env.JWT_SECRET || 'anykey';
+
 
 const FAST2SMS_API_KEY = "rXWbJda2A3hn507E9CTUBPZq8LNemHtsYfgDc164GRFjwyOpQuKarWg7vMIA3fRtFPYZysh1UweXJNmS" ;
 
@@ -12,15 +16,15 @@ const otpStore = {};
 
 // Endpoint to send OTP
 router.post('/send-otp', async (req, res) => {
-  const { phoneNumber } = req.body;
+  const { mobileNumber } = req.body;
 
-  if (!phoneNumber) {
+  if (!mobileNumber) {
     return res.status(400).json({ message: 'Phone number is required' });
   }
   console.log('API Key:', FAST2SMS_API_KEY);
 
   const otp = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit OTP
-  otpStore[phoneNumber] = otp; // Store OTP temporarily
+  otpStore[mobileNumber] = otp; // Store OTP temporarily
 
   try {
     const response = await axios.post(
@@ -31,7 +35,7 @@ router.post('/send-otp', async (req, res) => {
         language: 'english',
         variables_values: otp,
         route: "otp",
-        numbers: phoneNumber,
+        numbers: mobileNumber,
         flash : "0"
       },
       {
@@ -49,16 +53,23 @@ router.post('/send-otp', async (req, res) => {
 });
 
 // Endpoint to verify OTP
-router.post('/verify-otp', (req, res) => {
-  const { phoneNumber, otp } = req.body;
+router.post('/verify-otp', async(req, res) => {
+  const { mobileNumber, otp } = req.body;
 
-  if (!phoneNumber || !otp) {
+  if (!mobileNumber || !otp) {
     return res.status(400).json({ message: 'Phone number and OTP are required' });
   }
 
-  if (otpStore[phoneNumber] && otpStore[phoneNumber] == otp) {
-    delete otpStore[phoneNumber]; // Remove OTP after successful verification
-    res.status(200).json({ message: 'OTP verified successfully' });
+  const user = await User.findOne({ mobileNumber });
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const token = jwt.sign({userId: user.userId, mobileNumber: user.mobileNumber}, jwtSecret, { expiresIn: '1h' });
+
+  if (otpStore[mobileNumber] && otpStore[mobileNumber] == otp) {
+    delete otpStore[mobileNumber]; // Remove OTP after successful verification
+    res.status(200).json({ message: 'OTP verified successfully',token });
   } else {
     res.status(400).json({ message: 'Invalid OTP' });
   }

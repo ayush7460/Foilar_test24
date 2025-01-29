@@ -25,6 +25,7 @@ router.post('/addCustomer', authenticateUser, async (req, res) => {
       phoneNumber,
       ByPhoneNumber: req.ByPhoneNumber,
       userId: req.userId,
+
     });
 
     // Save customer to the database
