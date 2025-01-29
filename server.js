@@ -28,6 +28,10 @@ const loanRoutes = require('./Routes/Loans/loanRoutes');
 const loanProfile = require('./Routes/Loans/loan-profile');
 const add = require('./Routes/Loans/add');
 
+app.use(bodyParser.json());
+
+app.use(cors({ origin: 'https://account-transaction.web.app' }));
+
 app.use('/api', signup);
 app.use('/api', login);  
 app.use('/api', otp);
@@ -50,9 +54,6 @@ app.use('/api', loanRoutes);
 app.use('/api', loanProfile);
 
 
-app.use(bodyParser.json());
-
-app.use(cors({ origin: 'https://account-transaction.web.app' }));
 
 
 // Middleware
