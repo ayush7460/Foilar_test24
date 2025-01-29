@@ -1,5 +1,8 @@
 // require('dotenv').config(); 
 const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const mongoose = require('mongoose');
@@ -38,6 +41,11 @@ app.use('/api', add);
 app.use('/api', loanRoutes);
 app.use('/api', loanProfile);
 
+
+app.use(bodyParser.json());
+app.use(cors({ origin: 'http://localhost:3000' }));
+
+
 // Middleware
 
 const mongoURI = process.env.MONGODB_URI || "mongodb+srv://ayush1777:agr11@cluster0.0128p.mongodb.net/FOILAR";
@@ -50,15 +58,15 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-
+app.use('/uploads', express.static('uploads'));
 
 
 
 app.use(express.json());
 // Routes
-app.get('/', (req, res) => {
-  res.send('Hello, Express!');
-});
+// app.get('/', (req, res) => {
+//   res.send('Hello, Express!');
+// });
 
 // Start the server
 app.listen(PORT, () => {
