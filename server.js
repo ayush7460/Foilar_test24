@@ -67,15 +67,10 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
 app.use('/uploads', express.static('uploads'));
 
-
-
 app.use(express.json());
-// Routes
-// app.get('/', (req, res) => {
-//   res.send('Hello, Express!');
-// });
 
 // Start the server
 app.listen(PORT, () => {

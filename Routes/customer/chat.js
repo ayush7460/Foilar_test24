@@ -254,7 +254,7 @@ router.get('/events', (req, res) => {
 
   changeStream.on('change', (change) => {
     if (change.operationType === 'insert') {
-      const { sender, receiver, isRead } = change.fullDocument;
+      const { sender, receiver, message, isRead, customerID, timestamp, senderYou } = change.fullDocument;
 
       // If the message is unread, notify the client
       if (!isRead) {
@@ -262,6 +262,12 @@ router.get('/events', (req, res) => {
           `data: ${JSON.stringify({
             sender,
             receiver,
+            customerID,
+            timestamp,
+            senderYou,
+            isRead,
+            message,
+            
           })}\n\n`
         );
       }
