@@ -88,14 +88,16 @@ router.post('/forget-password/verify-otp', async (req, res) => {
 });
 
 // 3️⃣ Reset Password
-
 router.post('/reset-password', async (req, res) => {
   const { mobileNumber, newPassword } = req.body;
   
   const user = await User.findOne({ mobileNumber });
   if (!user) return res.status(404).json({ message: "User not found" });
 
-  user.password = newPassword; // Save new password (should be hashed)
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+
+  user.password = hashedPassword; // Save new password (should be hashed)
   await user.save();
 
   res.status(200).json({ message: "Password reset successfully" });
