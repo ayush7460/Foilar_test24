@@ -21,7 +21,7 @@ router.post('/send-otp', async (req, res) => {
   if (!mobileNumber) {
     return res.status(400).json({ message: 'Phone number is required' });
   }
-  console.log('API Key:', FAST2SMS_API_KEY);
+  // console.log('API Key:', FAST2SMS_API_KEY);
 
   const otp = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit OTP
   otpStore[mobileNumber] = otp; // Store OTP temporarily
@@ -67,13 +67,12 @@ router.post('/verify-otp', async(req, res) => {
 
   const token = jwt.sign({userId: user.userId, mobileNumber: user.mobileNumber}, jwtSecret, { expiresIn: '1h' });
 
-  if (otpStore[mobileNumber] && otpStore[mobileNumber] == otp) {
+  if (otpStore[mobileNumber] && otpStore[mobileNumber] == otp.toString()) {
     delete otpStore[mobileNumber]; // Remove OTP after successful verification
-    res.status(200).json({ message: 'OTP verified successfully',token });
+    res.status(200).json({ message: 'OTP verified successfully', token });
   } else {
-    res.status(400).json({ message: 'Invalid OTP' });
+    res.status(401).json({ message: 'Invalid OTP' });
   }
 });
 
 module.exports = router;
-
