@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 require('dotenv').config();
-
+const bcrypt = require('bcrypt');
 const User = require('../../models/user');
 const jwt = require('jsonwebtoken');
 const jwtSecret = process.env.JWT_SECRET || 'anykey';
