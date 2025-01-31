@@ -85,12 +85,19 @@ router.post('/add-loan/:customerID', authenticateUser, upload.single('attachment
 });
 
 // Get all loans
-router.get('/loan-profile/:customerID', async (req, res) => {
+router.get('/loan-profile/:customerID', authenticateUser, async (req, res) => {
   const { customerID } = req.params;
 
   try {
-    const loan = await Loan.findOne({ customerID: customerID }).populate('customerID'); // Use populate if ref is added
-    if (!loan) return res.status(404).json({ error: 'Loan not found' });
+    const loan = await Loan.findOne({ 
+      
+      customerID: customerID, 
+      addedBy: req.userId 
+    
+    }); // Use populate if ref is added
+    if (!loan) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have access to this loan' });
+    }
     res.json(loan);
   } catch (error) {
     console.error(error.message);
@@ -101,7 +108,7 @@ router.get('/loan-profile/:customerID', async (req, res) => {
 // const multer = require('multer');
 const uploads = multer({ storage: storage });
 
-router.post('/loan-profile/:customerID/signature', upload.single('attachments'), async (req, res) => {
+router.post('/loan-profile/:customerID/signature', authenticateUser, upload.single('attachments'), async (req, res) => {
   const { customerID } = req.params;
   try {
     // const { customerID } = req.params;
@@ -118,7 +125,8 @@ router.post('/loan-profile/:customerID/signature', upload.single('attachments'),
     };
 
     const loan = await Loan.findOneAndUpdate(
-      { customerID },
+      { customerID, addedBy: req.userId },
+   
       { $push: { "loanDetails.signature": attachmentEntry } }, // Ensure the correct path is used
       { new: true }
     );

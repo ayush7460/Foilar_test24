@@ -7,26 +7,36 @@ const schedule = require('node-schedule');
 
 
 // Fetch loan details by ID
-router.get('/loan-profile/:id', async (req, res) => {
+// router.get('/loan-profile/:id', authenticateUser, async (req, res) => {
+//   try {
+//     userid = req.userId
+//     const transactions = await Loan.find({ addedBy: userid }).sort({ createdAt: -1 });
+//     if (!transactions) return res.status(404).json({ error: 'You are not Authorize' });
+
+//     const loan = await Loan.findById(req.params.id).populate('customerID'); // Use populate if ref is added
+//     if (!loan) return res.status(404).json({ error: 'Loan not found' });
+//     res.json(loan);
+//   } catch (error) {
+//     console.error(error.message);
+//     res.status(500).json({ error: 'Server Error' });
+//   }
+// });
+
+router.get('/loan-profile2/:customerID', authenticateUser, async (req, res) => {
   try {
-    const loan = await Loan.findById(req.params.id).populate('customerID'); // Use populate if ref is added
-    if (!loan) return res.status(404).json({ error: 'Loan not found' });
+    const { customerID } = req.params;
+    const userId = req.ByPhoneNumber;
+
+    // Ensure only the user who added the loan can access it
+    const loan = await LoanProfile.findOne({ customerID, ByPhoneNumber: userId }).populate('customerID');
+
+    if (!loan) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have access to this loan' });
+    }
+
     res.json(loan);
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: 'Server Error' });
-  }
-});
-
-router.get('/loan-profile2/:customerID', async (req, res) => {
-  const { customerID } = req.params;
-
-  try {
-    const loan = await LoanProfile.findOne({ customerID: customerID }).populate('customerID'); // Use populate if ref is added
-    if (!loan) return res.status(404).json({ error: 'Loan not found' });
-    res.json(loan);
-  } catch (error) {
-    console.error(error.message);
+    console.error('Error fetching loan profile:', error);
     res.status(500).json({ error: 'Server Error' });
   }
 });
