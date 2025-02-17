@@ -32,10 +32,7 @@ const imageRoutes = require("./Routes/dbs/imageRoutes");
 
 app.use(bodyParser.json());
 
-
-// Allow requests from your frontend domain
-app.use(cors());
-
+app.use(cors({ origin: 'https://account-transaction.web.app' }));
 
 app.use('/api', signup);
 app.use('/api', login);  
