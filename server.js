@@ -32,7 +32,6 @@ const imageRoutes = require("./Routes/dbs/imageRoutes");
 
 app.use(bodyParser.json());
 
-const cors = require("cors");
 
 // Allow requests from your frontend domain
 app.use(cors());
