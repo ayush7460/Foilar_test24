@@ -24,8 +24,10 @@ router.post("/upload/:customerID", upload.single("image"), async (req, res) => {
 
     if (customer1 && customer1.profileImage) {
       // Extract public_id from Cloudinary URL
-      const oldImagePublicId = customer1.profileImage.split("/").pop().split(".")[0];
-
+      const oldImagePublicId = customer1.profileImage
+      .split("/customer_images/")[1]
+      .split(".")[0];
+    
       // Delete old image from Cloudinary
       await cloudinary.uploader.destroy(`customer_images/${customerID}/${oldImagePublicId}`);
     }
@@ -33,9 +35,14 @@ router.post("/upload/:customerID", upload.single("image"), async (req, res) => {
 
   
       // Upload to Cloudinary
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: `customer_images/${customerID}`, // Separate images per customer
-      });
+      const result = await cloudinary.uploader.upload_stream({ folder: `customer_images/${customerID}` }, 
+        (error, result) => {
+          if (error) {
+            return res.status(500).json({ error: "Cloudinary upload failed", details: error.message });
+          }
+          res.json({ message: "Image uploaded successfully", imageUrl: result.secure_url });
+        }).end(req.file.buffer);
+      
   
       // Delete local file after uploading
       // fs.unlinkSync(req.file.path);

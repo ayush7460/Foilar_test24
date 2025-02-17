@@ -1,5 +1,11 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+const uploadDir = "uploads98/";
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true }); // Create directory if not exists
+}
 
 // Storage setup (Temporary)
 const storage = multer.diskStorage({
