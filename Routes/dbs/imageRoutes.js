@@ -10,56 +10,54 @@ const router = express.Router();
 
 // Upload Image for a Specific Customer
 router.post("/upload/:customerID", upload.single("image"), async (req, res) => {
-    try {
-      const { customerID } = req.params;
-  
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
+  try {
+    const { customerID } = req.params;
 
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-
-       // Find customer and get the old image URL
+    // Find customer and get old image URL
     const customer1 = await Customer.findOne({ customerID });
 
     if (customer1 && customer1.profileImage) {
       // Extract public_id from Cloudinary URL
       const oldImagePublicId = customer1.profileImage
-      .split("/customer_images/")[1]
-      .split(".")[0];
-    
+        .split("/customer_images/")[1]
+        .split(".")[0];
+
       // Delete old image from Cloudinary
       await cloudinary.uploader.destroy(`customer_images/${customerID}/${oldImagePublicId}`);
     }
 
+    // Upload Image to Cloudinary
+    cloudinary.uploader.upload_stream(
+      { folder: `customer_images/${customerID}` },
+      async (error, result) => {
+        if (error) {
+          console.error("Cloudinary Upload Error:", error);
+          return res.status(500).json({ error: "Cloudinary upload failed", details: error.message });
+        }
 
-  
-      // Upload to Cloudinary
-      const result = await cloudinary.uploader.upload_stream({ folder: `customer_images/${customerID}` }, 
-        (error, result) => {
-          if (error) {
-            return res.status(500).json({ error: "Cloudinary upload failed", details: error.message });
-          }
-          res.json({ message: "Image uploaded successfully", imageUrl: result.secure_url });
-        }).end(req.file.buffer);
-      
-  
-      // Delete local file after uploading
-      // fs.unlinkSync(req.file.path);
-  
-      // Find customer and update profile image URL
-      const customer = await Customer.findOneAndUpdate(
-        { customerID: customerID },
-        { profileImage: result.secure_url },
-        { new: true, upsert: true }
-      );
-  
-      res.json({ message: "Image uploaded successfully", imageUrl: result.secure_url, customer });
-  
-    } catch (error) {
+        // Update customer with new profile image URL
+        const customer = await Customer.findOneAndUpdate(
+          { customerID: customerID },
+          { profileImage: result.secure_url },
+          { new: true, upsert: true }
+        );
+
+        return res.json({ message: "Image uploaded successfully", imageUrl: result.secure_url, customer });
+      }
+    ).end(req.file.buffer);
+
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    if (!res.headersSent) { // ✅ Prevent duplicate response
       res.status(500).json({ error: "Image upload failed", details: error.message });
     }
-  });
+  }
+});
+
 
   router.get("/imag/:customerID", async (req, res) => {
     try {
