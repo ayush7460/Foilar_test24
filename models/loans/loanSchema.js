@@ -8,8 +8,11 @@ const loanSchema = new mongoose.Schema({
   addedBy:{
     type: String,
   },
+  profileImage: { type: String }, 
+
   loanDetails: {
     loanType: { type: String, required: true, enum: ['With Interest', 'EMI Collection'] },
+    method: { type: String, required: true, enum: ['Cash', 'Bank Transfer', 'Credit Card'] , default: 'Cash'  },
     amount: { type: Number, required: true },
     interestRate: { type: Number, required: true },
     
@@ -49,11 +52,44 @@ const loanSchema = new mongoose.Schema({
           date: { type: Date, required: true },  
           method: { type: String, required: true }, // e.g., 'Credit Card', 'Bank Transfer'  
       },  
-  ],  
+  ],
+
+  remainingPrincipal: { type:Number } ,  // ✅ Add this if missing
+
+  
+  topUpHistory: [
+    {
+      amount: { type: Number, required: true },
+      date: { type: Date, required: true },
+      method: { type: String, required: true },
+      topupinterestrate: { type: String, require: true},
+    },
+  ],
+  topUpInterest:{  
+    type: Number,  
+    },
+  topUpTotal: {  
+    type: Number, 
+    },
+
+    topDownHistory: [
+      {
+        amount: Number,
+        date: Date,
+        method: String,
+        redeem: Number,
+      },
+    ], 
+    
+    totalRepaid: { 
+      type: Number,
+
+    },
+  
   loanDuration: {  
     type: Number, // Duration in months or years  
-    // required: true,  
-},
+    },
+    
 interestMethod: {  
   type: String,  
   enum: ['Simple', 'Compound'],  

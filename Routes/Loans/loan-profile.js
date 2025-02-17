@@ -133,14 +133,6 @@ const calculateDailyInterest = (amount, interestRate) => {
 //   return principal * Math.pow(1 + compoundRate, timePeriods) - principal;
 // }
 
-function calculateAccruedInterest(amount, rate, startDate) {
-  const today = new Date();
-  const start = new Date(startDate);
-  const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-  const dailyRate = rate / 100 / 365; // Assumes annual rate divided by days in a year
-  return amount * dailyRate * daysElapsed;
-}
-
 // const calculateAccruedInterest = (amount, interestRate, startDate) => {
 //   const today = new Date();
 //   const start = new Date(startDate);
@@ -149,7 +141,327 @@ function calculateAccruedInterest(amount, rate, startDate) {
 //   return dailyInterest * elapsedDays;
 // };
 
+function calculateAccruedInterest(amount, rate, startDate ) {
+  const today = new Date();
+  const start = new Date(startDate);
+  const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  const dailyRate = rate / 100 / 30; 
+  
+
+
+  return amount * dailyRate * daysElapsed;
+
+}
+
+// that comment is workcable for top up and agter todoen interest 
+
+// function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
+//   const today = new Date();
+//   const dailyRate = interestRate / 100 / 30; // Convert monthly rate to daily rate
+
+//   let topUpInterest = 0;
+//   let topUpTotal = 0;
+//   let remainingPrincipal = amount;
+
+//   // Step 1: Calculate initial accrued interest before any repayments
+//   let accruedInterest = calculateAccruedInterest(amount, interestRate, startDate);
+
+//   // Step 2: Process Top-Ups (Increase Principal)
+//   if (topUpHistory && Array.isArray(topUpHistory)) {
+//     topUpHistory.forEach(topUp => {
+//       const start = new Date(topUp.date);
+//       const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+//       const rate = parseFloat(topUp.topupinterestrate) || 0;
+//       const dailyRate = rate / 100 / 30;
+
+//       if (daysElapsed > 0) {
+//         topUpInterest += topUp.amount * dailyRate * daysElapsed;
+//       }
+//       topUpTotal += topUp.amount;
+//     });
+//   }
+
+//    // Step 1: Interest Before First Repayment
+//    if (topDownHistory.length > 0) {
+//     const firstRepaymentDate = new Date(topDownHistory[0].date);
+//     const daysUntilFirstRepayment = Math.floor((firstRepaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+//     totalInterest += remainingPrincipal * dailyRate * daysUntilFirstRepayment;
+//   }
+  
+
+//   // Step 3: Process Top-Down Repayments (Reduce Principal)
+//   if (topDownHistory && Array.isArray(topDownHistory)) {
+//     topDownHistory.forEach(topDown => {
+//       remainingPrincipal -= topDown.amount;
+//       if (remainingPrincipal < 0) remainingPrincipal = 0; // Avoid negative values
+      
+//       topDown.redeem = amount;
+//       topDown.amount = 0; // Reset top-down amount to avoid reprocessing
+//     });
+//   }
+
+//   // Step 4: Adjust Interest Correctly After Repayment
+//   // 🛑 Fix: Only add extra interest for remaining principal from repayment date onward, not from startDate!
+//   const lastRepaymentDate = topDownHistory.length > 0 
+//   ? new Date(topDownHistory[topDownHistory.length - 1].date) 
+//   : new Date(startDate);
+
+
+//   const remainingDays = Math.floor((today - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+//   const remainingInterest = remainingPrincipal * dailyRate * remainingDays;
+
+//   return { 
+//     topUpInterest, 
+//     topUpTotal, 
+//     topdownInterest: remainingInterest, 
+//     topdownTotal: remainingPrincipal 
+//   };
+// }
+
+function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
+  const today = new Date();
+  const dailyRate = interestRate / 100 / 30; // Convert monthly rate to daily rate
+
+  let totalInterest = 0;
+  let remainingPrincipal = amount;
+  let lastRepaymentDate = new Date(startDate);
+
+  let accruedInterest = 0;
+  let topUpInterest = 0;
+  let topUpTotal = 0;
+
+    // Step 1: Calculate accrued interest first
+    accruedInterest = calculateAccruedInterest(amount, interestRate, startDate);
+
+    // Step 2: Process Top-Ups (Increases Principal)
+    if (topUpHistory && Array.isArray(topUpHistory)) {
+      topUpHistory.forEach(topUp => {
+        const start = new Date(topUp.date);
+        const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    
+        const rate = parseFloat(topUp.topupinterestrate) || 0; // Get individual top-up interest rate
+        const dailyRate = rate / 100 / 30; // Convert to daily rate
+    
+        if (daysElapsed > 0) { // Prevent future date issues
+          topUpInterest += topUp.amount * dailyRate * daysElapsed;
+        }
+        topUpTotal += topUp.amount;
+    
+       
+    
+      }
+    
+    );
+    }
+
+  // Step 1: Interest Before First Repayment
+  if (topDownHistory.length > 0) {
+    const firstRepaymentDate = new Date(topDownHistory[0].date);
+    const daysUntilFirstRepayment = Math.floor((firstRepaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+    totalInterest += remainingPrincipal * dailyRate * daysUntilFirstRepayment;
+  }
+
+  // Step 2: Process Top-Down Repayments
+  topDownHistory.forEach(topDown => {
+    const repaymentDate = new Date(topDown.date);
+    const daysSinceLastRepayment = Math.floor((repaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+
+    // Calculate interest for the period before repayment
+    totalInterest += remainingPrincipal * dailyRate * daysSinceLastRepayment;
+
+    // Reduce principal after repayment
+    remainingPrincipal -= topDown.amount;
+    if (remainingPrincipal < 0) remainingPrincipal = 0;
+
+    lastRepaymentDate = repaymentDate;
+
+    topDown.redeem = amount;
+    topDown.amount = 0;
+  });
+
+  // Step 3: Interest from Last Repayment Until Today
+  const remainingDays = Math.floor((today - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+  totalInterest += remainingPrincipal * dailyRate * remainingDays;
+
+  return { 
+    topUpInterest, topUpTotal,
+    topdownInterest: totalInterest, // 🔥 Total interest from start date till toda
+    topdownTotal: remainingPrincipal 
+  };
+}
+
+
+
+// function calculateTopDownRepayment(loan) {
+//   let remainingPrincipal = loan.loanDetails.amount+ loan.loanDetails.topUpTotal ;
+//   let remainingInterest = loan.loanDetails.accruedInterest + loan.loanDetails.topUpInterest;
+//   let totalRepaid = 0;
+
+//   if (Array.isArray(loan.loanDetails.topDownHistory)) {
+//     loan.loanDetails.topDownHistory.forEach(payment => {
+//       let paymentAmount = payment.amount;
+//       totalRepaid += paymentAmount;
+
+//       if (remainingInterest > 0) {
+//         if (paymentAmount >= remainingInterest) {
+//           paymentAmount -= remainingInterest;
+//           remainingInterest = 0;
+//         } else {
+//           remainingInterest -= paymentAmount;
+//           paymentAmount = 0;
+//         }
+//       }
+
+//       if (paymentAmount > 0) {
+//         remainingPrincipal -= paymentAmount;
+//       }
+//     });
+//   }
+
+//   if (remainingPrincipal < 0) remainingPrincipal = 0;
+
+//   return { remainingPrincipal, remainingInterest, totalRepaid };
+// }
+
+
+
 // API to update interest
+
+// function calculateTopDownRepayment(loan) {
+//   let remainingPrincipal = loan.loanDetails.amount;
+//   let remainingInterest = loan.loanDetails.accruedInterest + loan.loanDetails.topUpInterest;
+//   let totalRepaid = 0;
+
+//   // Sort repayments by date (oldest first)
+//   let repayments = loan.loanDetails.topDownHistory || [];
+//   repayments.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+//   let lastRepaymentDate = new Date(loan.loanDetails.startDate); // Start from loan start date
+//   let today = new Date();
+
+//   repayments.forEach(payment => {
+//     let paymentDate = new Date(payment.date);
+    
+//     // Ignore future repayments
+//     if (paymentDate > today) return;
+
+//     let daysSinceLastPayment = Math.floor((paymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+
+//     // Apply accrued interest since last repayment
+//     if (daysSinceLastPayment > 0) {
+//       let dailyRate = loan.loanDetails.interestRate / 100 / 30; // Monthly to daily rate
+//       let newInterest = remainingPrincipal * dailyRate * daysSinceLastPayment;
+//       remainingInterest += newInterest;
+//     }
+
+//     let paymentAmount = payment.amount;
+//     totalRepaid += paymentAmount;
+
+//     console.log(`Processing repayment of ₹${paymentAmount} on ${paymentDate.toISOString()}`);
+//     console.log(`Interest before repayment: ₹${remainingInterest.toFixed(2)}`);
+//     console.log(`Principal before repayment: ₹${remainingPrincipal.toFixed(2)}`);
+
+//     // Deduct interest first
+//     if (remainingInterest > 0) {
+//       if (paymentAmount >= remainingInterest) {
+//         paymentAmount -= remainingInterest;
+//         remainingInterest = 0;
+//       } else {
+//         remainingInterest -= paymentAmount;
+//         paymentAmount = 0;
+//       }
+//     }
+
+//     // Deduct principal if any payment amount is left
+//     if (paymentAmount > 0) {
+//       remainingPrincipal -= paymentAmount;
+//     }
+
+//     console.log(`Interest after repayment: ₹${remainingInterest.toFixed(2)}`);
+//     console.log(`Principal after repayment: ₹${remainingPrincipal.toFixed(2)}`);
+//     console.log("--------------------------");
+
+//     lastRepaymentDate = paymentDate; // Update last repayment date
+//   });
+
+//   if (remainingPrincipal < 0) remainingPrincipal = 0;
+
+//   return { remainingPrincipal, remainingInterest, totalRepaid };
+// }
+
+
+
+
+
+
+// router.put('/update-interest/:customerID', async (req, res) => {
+//   try {
+//     const loan = await Loan.findOne({ customerID: req.params.customerID });
+
+//     if (!loan) {
+//       return res.status(404).json({ message: 'Loan not found' });
+//     }
+ 
+//     let remainingPrincipal = loan.loanDetails.amount;
+
+
+//     const accruedInterest = calculateAccruedInterest(
+//       loan.loanDetails.amount,
+//       loan.loanDetails.interestRate,
+//       loan.loanDetails.startDate
+ 
+//     );
+//     const totalAmount = loan.loanDetails.amount + accruedInterest;
+
+//     loan.loanDetails.accruedInterest = accruedInterest;
+//     loan.loanDetails.totalAmount = totalAmount;
+
+//     // remainingPrincipal = accruedResult.remainingPrincipal;
+    
+//      // Debug top-up history before calculation
+//     console.log("Top-Up History before calculation:", loan.loanDetails.topUpHistory);
+
+//     const topUpHistory = loan.loanDetails.topUpHistory || [];
+//     const { topUpInterest, topUpTotal } = calculateTopUpInterest(topUpHistory, loan.loanDetails.interestRate 
+
+//     );
+
+//     loan.loanDetails.topUpInterest = topUpInterest;
+//     loan.loanDetails.topUpTotal = topUpTotal;
+//     loan.updatedAt = new Date();
+
+//     // remainingPrincipal = topUpResult.remainingPrincipal;
+//     // loan.loanDetails.remainingPrincipal = remainingPrincipal;
+
+//     // Apply Top-Down Repayments
+//     // const { remainingPrincipal, remainingInterest, totalRepaid } = calculateTopDownRepayment(loan);
+
+//     // // Update loan details
+//     // loan.loanDetails.accruedInterest = remainingInterest;
+//     // loan.loanDetails.totalAmount = (remainingPrincipal || 0) + (remainingInterest || 0);
+//     // loan.loanDetails.remainingPrincipal = remainingPrincipal;
+//     // loan.loanDetails.topUpInterest = topUpInterest;
+//     // loan.loanDetails.topUpTotal = topUpTotal;
+//     // loan.loanDetails.totalRepaid = totalRepaid;
+//     // loan.updatedAt = new Date();
+
+    
+    
+//     await loan.save();
+
+//     res.json({ message: 'Interest updated successfully', loan });
+//   } catch (error) {
+//     console.error('Error updating interest:', error);
+//     res.status(500).json({ message: 'Error updating interest', error });
+//   }
+// });
+
+
+
+
+
+// API to update interest
+
 router.put('/update-interest/:customerID', async (req, res) => {
   try {
     const loan = await Loan.findOne({ customerID: req.params.customerID });
@@ -170,7 +482,38 @@ router.put('/update-interest/:customerID', async (req, res) => {
     loan.loanDetails.totalAmount = totalAmount;
     loan.updatedAt = new Date();
 
-    await loan.save();
+    // Debug top-up history before calculation
+    console.log("Top-Up History before calculation:", loan.loanDetails.topUpHistory);
+
+    const topUpHistory = loan.loanDetails.topUpHistory || [];
+    const { topUpInterest, topUpTotal, topdownInterest, topdownTotal } = calculateTopUpInterest(
+      loan.loanDetails.amount, 
+      loan.loanDetails.interestRate, 
+      loan.loanDetails.startDate, 
+      topUpHistory, 
+      loan.loanDetails.topDownHistory || []
+
+    );
+
+   
+
+
+    loan.loanDetails.topUpInterest = topUpInterest; 
+    loan.loanDetails.topUpTotal = topUpTotal;
+
+    // Debug calculated values before saving
+    console.log("Top-Up Interest:", topUpInterest);
+    console.log("Top-Up Total:", topUpTotal);
+
+    // Update loan details with top-up calculations
+    // loan.loanDetails.topUpInterest = topUpInterest;
+    // loan.loanDetails.topUpTotal = topUpTotal;
+
+      loan.loanDetails.accruedInterest = topdownInterest;
+      loan.loanDetails.amount = topdownTotal;
+    loan.updatedAt = new Date();
+
+    await loan.save(); // ✅ Now properly saving updates
 
     res.json({ message: 'Interest updated successfully', loan });
   } catch (error) {
@@ -178,6 +521,7 @@ router.put('/update-interest/:customerID', async (req, res) => {
     res.status(500).json({ message: 'Error updating interest', error });
   }
 });
+
 
 
 

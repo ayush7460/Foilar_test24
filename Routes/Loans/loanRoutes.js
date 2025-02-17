@@ -32,6 +32,7 @@ router.post('/add-loan/:customerID', authenticateUser, upload.single('attachment
   const { customerID } = req.params;
   const {
     loanType,
+    method,
     amount,
     interestRate,
     interestFrequency,
@@ -48,6 +49,13 @@ router.post('/add-loan/:customerID', authenticateUser, upload.single('attachment
       return res.status(404).json({ message: 'Customer not found' });
     }
 
+    const existingLoan = await Loan.findOne({ customerID });
+    if (existingLoan) {
+      return res.status(400).json({ message: 'Loan already exists for this customer ID.' });
+    }
+
+
+
     // Validate required fields
     if (!loanType || !amount || !interestRate || !interestFrequency || !startDate) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -61,6 +69,7 @@ router.post('/add-loan/:customerID', authenticateUser, upload.single('attachment
       addedBy: req.userId,
       loanDetails: {
         loanType,
+        method,
         amount,
         interestRate,
         interestStartDate:Date(),
@@ -80,7 +89,7 @@ router.post('/add-loan/:customerID', authenticateUser, upload.single('attachment
     res.status(201).json({ message: 'Loan added successfully', loan });
   } catch (error) {
     console.error('Error adding loan:', error);
-    res.status(500).json({ message: 'Error Adding loan', error });
+    res.status(500).json({ message: 'Error adding loan', error: error.message });
   }
 });
 
@@ -213,5 +222,199 @@ router.get('/total-amount', authenticateUser, async (req, res) => {
   }
 });
 
+router.get("/latest-loan", async (req, res) => {
+  try {
+    const latestLoan = await Loan.findOne().sort({ createdAt: -1 }); // Get latest loan
+    if (!latestLoan) return res.status(404).json({ message: "No loan records found" });
+
+    res.json({
+      method: latestLoan.loanDetails.method,
+      amount: latestLoan.loanDetails.amount,
+      date: latestLoan.createdAt,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// router.get("/loan-trends", authenticateUser, async (req, res) => {
+//   try {
+//     const loans = await Loan.aggregate([
+//       {$match: { addedBy: req.userId }, }, // Only fetch user's loans
+//       { $sort: { createdAt: -1 } }, // Sort by latest date first
+//       { $limit: 100 }, // Limit to the last 100 entries
+//       {
+//         $group: {
+//           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+//           totalLoans: { $sum: "$loanDetails.amount" },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//     ]);
+
+//     const formattedData = loans.map(entry => ({
+//       date: entry._id,
+//       loanAmount: entry.totalLoans,
+//     }));
+
+//     res.json(formattedData);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Server error");
+//   }
+// });
+
+// router.get("/loan-trends", authenticateUser, async (req, res) => {
+//   try {
+//     const { range } = req.query; 
+//     const matchStage = { addedBy: req.userId };
+
+//     let startDate = new Date();
+//     if (range === "1H") startDate.setHours(startDate.getHours() - 1);
+//     else if (range === "1D") startDate.setDate(startDate.getDate() - 1);
+//     else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
+//     else if (range === "1M") startDate.setMonth(startDate.getMonth() - 1);
+//     else if (range === "1Y") startDate.setFullYear(startDate.getFullYear() - 1);
+//     else startDate = null;
+
+//     if (startDate) {
+//       matchStage.createdAt = { $gte: startDate };
+//     }
+
+//     const loans = await Loan.aggregate([
+//       { $match: matchStage },
+//       {
+//         $group: {
+//           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+//           totalLoans: { $sum: "$loanDetails.amount" },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//     ]);
+
+//     const totalSelectedRange = loans.reduce((sum, entry) => sum + entry.totalLoans, 0);
+
+//     const allTimeTotal = await Loan.aggregate([
+//       { $match: { addedBy: req.userId } },
+//       { $group: { _id: null, totalAllTime: { $sum: "$loanDetails.amount" } } },
+//     ]);
+    
+//     const totalAllTime = allTimeTotal.length > 0 ? allTimeTotal[0].totalAllTime : 0;
+//     const increaseAmount = totalSelectedRange - totalAllTime;
+//     const percentageChange = totalAllTime > 0 ? ((increaseAmount) / totalAllTime) * 100 : 0;
+
+//     res.json({
+//       trendData: loans,
+//       totalAllTime,
+//       increaseAmount,
+//       percentageChange,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Server error");
+//   }
+// });
+
+// Helper function to get the previous time range
+router.get("/loan-trends", authenticateUser, async (req, res) => {
+  try {
+    const { range } = req.query;
+    let matchFilter = { addedBy: req.userId };
+
+    const now = new Date();
+    let startDate, prevStartDate, prevEndDate;
+
+    switch (range) {
+      case "1H":
+        startDate = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+        prevStartDate = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+        prevEndDate = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+        break;
+      case "1D":
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        prevStartDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        prevEndDate = startDate;
+        break;
+      case "1W":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        prevStartDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        prevEndDate = startDate;
+        break;
+      case "1M":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        prevEndDate = startDate;
+        break;
+      case "1Y":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        prevStartDate = new Date(now.getFullYear() - 1, 0, 1);
+        prevEndDate = startDate;
+        break;
+      default:
+        startDate = new Date(0); // All time
+        prevStartDate = null;
+        prevEndDate = null;
+        break;
+    }
+
+    matchFilter.createdAt = { $gte: startDate };
+    let prevMatchFilter = prevStartDate && prevEndDate ? { 
+      addedBy: req.userId, createdAt: { $gte: prevStartDate, $lt: prevEndDate } 
+    } : null;
+
+    // Aggregate total loans till now
+    const totalLoansResult = await Loan.aggregate([
+      { $match: { addedBy: req.userId } },
+      { $group: { _id: null, totalLoans: { $sum: "$loanDetails.amount" } } }
+    ]);
+
+    const totalLoans = totalLoansResult.length ? totalLoansResult[0].totalLoans : 0;
+
+    // Aggregate loans for selected range
+    const rangeLoansResult = await Loan.aggregate([
+      { $match: matchFilter },
+      { $group: { _id: null, totalLoans: { $sum: "$loanDetails.amount" } } }
+    ]);
+
+    const rangeLoans = rangeLoansResult.length ? rangeLoansResult[0].totalLoans : 0;
+
+    // Aggregate previous period loans
+    let previousLoans = 0;
+    if (prevMatchFilter) {
+      const previousLoansResult = await Loan.aggregate([
+        { $match: prevMatchFilter },
+        { $group: { _id: null, totalLoans: { $sum: "$loanDetails.amount" } } }
+      ]);
+      previousLoans = previousLoansResult.length ? previousLoansResult[0].totalLoans : 0;
+    }
+
+    // Calculate percentage increase
+    const percentageIncrease = totalLoans > 0 ? (rangeLoans / totalLoans) * 100 : 0;
+
+    // Fetch loan trends for the graph
+    const trendData = await Loan.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          loanAmount: { $sum: "$loanDetails.amount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    res.json({
+      trendData,
+      totalLoans,
+      rangeLoans,
+      previousLoans,
+      percentageIncrease,
+    });
+  } catch (error) {
+    console.error("Error fetching loan trends:", error);
+    res.status(500).send("Server error");
+  }
+});
 
 module.exports = router;

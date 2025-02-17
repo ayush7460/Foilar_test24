@@ -14,8 +14,11 @@ router.post('/add-customer-land', authenticateUser , async (req, res) => {
   try {
     // Check if customer already exists
     const existingCustomer = await CustomerLand.findOne({ phoneNumber });
+
+    let message = 'Customer added successfully';
+
     if (existingCustomer) {
-      return res.status(400).json({ message: 'Customer with this phone number already exists' });
+      message = 'Customer with this phone number already exists';
     }
 
     // Create a new customer
@@ -26,14 +29,15 @@ router.post('/add-customer-land', authenticateUser , async (req, res) => {
       ByPhoneNumber: req.ByPhoneNumber,
       userId: req.userId,
     });
-    res.status(201).json({ message: 'Customer added successfully',
+    res.status(201).json({ 
+      message,
        customer: newCustomer,
        customerID: newCustomer.customerID || newCustomer._id,
        });
   } catch (error) {
     console.error('Error adding customer:', error);
-    res.status(500).json({ message: 'Error adding customer', error });
-  }
+    res.status(500).json({ message: 'Error adding customer', error: error.message });
+  } 
 });
 
 // Get all customers
