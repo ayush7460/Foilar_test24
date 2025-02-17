@@ -38,6 +38,7 @@ router.post("/upload/:customerID", upload.single("image"), async (req, res) => {
       });
   
       // Delete local file after uploading
+      
       // fs.unlinkSync(req.file.path);
   
       // Find customer and update profile image URL
