@@ -218,77 +218,78 @@ function calculateAccruedInterest(amount, rate, startDate ) {
 //   };
 // }
 
-function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
-  const today = new Date();
-  const dailyRate = interestRate / 100 / 30; // Convert monthly rate to daily rate
+// 22-feb
+// function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
+//   const today = new Date();
+//   const dailyRate = interestRate / 100 / 30; // Convert monthly rate to daily rate
 
-  let totalInterest = 0;
-  let remainingPrincipal = amount;
-  let lastRepaymentDate = new Date(startDate);
+//   let totalInterest = 0;
+//   let remainingPrincipal = amount;
+//   let lastRepaymentDate = new Date(startDate);
 
-  let accruedInterest = 0;
-  let topUpInterest = 0;
-  let topUpTotal = 0;
+//   let accruedInterest = 0;
+//   let topUpInterest = 0;
+//   let topUpTotal = 0;
 
-    // Step 1: Calculate accrued interest first
-    accruedInterest = calculateAccruedInterest(amount, interestRate, startDate);
+//     // Step 1: Calculate accrued interest first
+//     accruedInterest = calculateAccruedInterest(amount, interestRate, startDate);
 
-    // Step 2: Process Top-Ups (Increases Principal)
-    if (topUpHistory && Array.isArray(topUpHistory)) {
-      topUpHistory.forEach(topUp => {
-        const start = new Date(topUp.date);
-        const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+//     // Step 2: Process Top-Ups (Increases Principal)
+//     if (topUpHistory && Array.isArray(topUpHistory)) {
+//       topUpHistory.forEach(topUp => {
+//         const start = new Date(topUp.date);
+//         const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24));
     
-        const rate = parseFloat(topUp.topupinterestrate) || 0; // Get individual top-up interest rate
-        const dailyRate = rate / 100 / 30; // Convert to daily rate
+//         const rate = parseFloat(topUp.topupinterestrate) || 0; // Get individual top-up interest rate
+//         const dailyRate = rate / 100 / 30; // Convert to daily rate
     
-        if (daysElapsed > 0) { // Prevent future date issues
-          topUpInterest += topUp.amount * dailyRate * daysElapsed;
-        }
-        topUpTotal += topUp.amount;
+//         if (daysElapsed > 0) { // Prevent future date issues
+//           topUpInterest += topUp.amount * dailyRate * daysElapsed;
+//         }
+//         topUpTotal += topUp.amount;
     
        
     
-      }
+//       }
     
-    );
-    }
+//     );
+//     }
 
-  // Step 1: Interest Before First Repayment
-  if (topDownHistory.length > 0) {
-    const firstRepaymentDate = new Date(topDownHistory[0].date);
-    const daysUntilFirstRepayment = Math.floor((firstRepaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
-    totalInterest += remainingPrincipal * dailyRate * daysUntilFirstRepayment;
-  }
+//   // Step 1: Interest Before First Repayment
+//   if (topDownHistory.length > 0) {
+//     const firstRepaymentDate = new Date(topDownHistory[0].date);
+//     const daysUntilFirstRepayment = Math.floor((firstRepaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+//     totalInterest += remainingPrincipal * dailyRate * daysUntilFirstRepayment;
+//   }
 
-  // Step 2: Process Top-Down Repayments
-  topDownHistory.forEach(topDown => {
-    const repaymentDate = new Date(topDown.date);
-    const daysSinceLastRepayment = Math.floor((repaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+//   // Step 2: Process Top-Down Repayments
+//   topDownHistory.forEach(topDown => {
+//     const repaymentDate = new Date(topDown.date);
+//     const daysSinceLastRepayment = Math.floor((repaymentDate - lastRepaymentDate) / (1000 * 60 * 60 * 24));
 
-    // Calculate interest for the period before repayment
-    totalInterest += remainingPrincipal * dailyRate * daysSinceLastRepayment;
+//     // Calculate interest for the period before repayment
+//     totalInterest += remainingPrincipal * dailyRate * daysSinceLastRepayment;
 
-    // Reduce principal after repayment
-    remainingPrincipal -= topDown.amount;
-    if (remainingPrincipal < 0) remainingPrincipal = 0;
+//     // Reduce principal after repayment
+//     remainingPrincipal -= topDown.amount;
+//     if (remainingPrincipal < 0) remainingPrincipal = 0;
 
-    lastRepaymentDate = repaymentDate;
+//     lastRepaymentDate = repaymentDate;
 
-    topDown.redeem = amount;
-    topDown.amount = 0;
-  });
+//     topDown.redeem = amount;
+//     topDown.amount = 0;
+//   });
 
-  // Step 3: Interest from Last Repayment Until Today
-  const remainingDays = Math.floor((today - lastRepaymentDate) / (1000 * 60 * 60 * 24));
-  totalInterest += remainingPrincipal * dailyRate * remainingDays;
+//   // Step 3: Interest from Last Repayment Until Today
+//   const remainingDays = Math.floor((today - lastRepaymentDate) / (1000 * 60 * 60 * 24));
+//   totalInterest += remainingPrincipal * dailyRate * remainingDays;
 
-  return { 
-    topUpInterest, topUpTotal,
-    topdownInterest: totalInterest, // 🔥 Total interest from start date till toda
-    topdownTotal: remainingPrincipal 
-  };
-}
+//   return { 
+//     topUpInterest, topUpTotal,
+//     topdownInterest: totalInterest, // 🔥 Total interest from start date till toda
+//     topdownTotal: remainingPrincipal 
+//   };
+// }
 
 
 
@@ -462,6 +463,106 @@ function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, t
 
 // API to update interest
 
+
+function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
+  const today = new Date();
+  const dailyRate = interestRate / 100 / 30; // Daily interest rate
+
+  let remainingPrincipal = amount;
+  let lastInterestCalcDate = new Date(startDate);
+  let totalInterest = 0;
+  let topUpInterest = 0;
+  let topUpTotal = 0;
+  let topdownInterest = 0;
+  let topdownTotal = 0;
+
+
+  // Interest before top-up or top-down
+  const daysElapsed = Math.floor((today - lastInterestCalcDate) / (1000 * 60 * 60 * 24));
+  if (daysElapsed > 0) {
+    totalInterest += remainingPrincipal * dailyRate * daysElapsed;
+  }
+
+  // Handle top-ups
+      // Step 2: Process Top-Ups (Increases Principal)
+      if (topUpHistory && Array.isArray(topUpHistory)) {
+        topUpHistory.forEach(topUp => {
+          const start = new Date(topUp.date);
+          const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24 ));
+      
+          const rate = parseFloat(topUp.topupinterestrate) || 0; // Get individual top-up interest rate
+          const dailyRate = rate / 100 / 30;// Convert to daily rate
+      
+          if (daysElapsed > 0) { 
+            // Calculate interest on the existing principal before adding the top-up
+            totalInterest += remainingPrincipal * dailyRate * daysElapsed; 
+        
+            // Now, add the top-up amount
+            // remainingPrincipal += topUp.amount; 
+        
+            // Only apply interest to the top-up for the remaining period
+            topUpInterest += (topUp.amount * dailyRate * daysElapsed) / 2; 
+        }
+        
+          topUpTotal += topUp.amount;
+          // remainingPrincipal += topUp.amount;
+          // topUp.redeem = topUp.amount;
+          // topUp.amount = 0;
+          
+        }
+      
+      );
+      }
+
+
+      if (topDownHistory && Array.isArray(topDownHistory)) {
+        let lastProcessedDate = lastInterestCalcDate; // Track last processed date
+      
+        topDownHistory.forEach(topDown => {
+          const repaymentDate = new Date(topDown.date);
+          if (repaymentDate > today) return; // Ignore future payments
+      
+          // Ensure repayments are applied once and not repeatedly deducted
+          if (repaymentDate > lastProcessedDate) {
+            const daysBeforeRepayment = Math.floor((repaymentDate - lastProcessedDate) / (1000 * 60 * 60 * 24));
+            if (daysBeforeRepayment > 0) {
+              // totalInterest += remainingPrincipal * dailyRate * daysBeforeRepayment;
+              topdownInterest += (topDown.amount * dailyRate * daysBeforeRepayment);
+            }
+      
+            topdownTotal += topDown.amount; 
+            remainingPrincipal -= topDown.amount; 
+      
+            if (remainingPrincipal < 0) remainingPrincipal = 0; // Prevent negative principal
+      
+            lastProcessedDate = repaymentDate; // Update last processed date
+          }
+        });
+      }
+      
+
+  // Interest after last repayment till today
+  const daysAfterRepayment = Math.floor((today - lastInterestCalcDate) / (1000 * 60 * 60 * 24));
+  let interestAfter = 0;
+
+  if (daysAfterRepayment > 0) {
+    interestAfter = remainingPrincipal * dailyRate * daysAfterRepayment;
+  }
+
+  totalInterest =  topUpInterest + topdownInterest + interestAfter;
+  // totalInterest =   topdownInterest + interestAfter;
+
+
+  return {
+    topUpInterest,
+    topUpTotal,
+    topdownInterest,
+    topdownTotal,
+    totalInterest,
+    remainingPrincipal,
+  };
+}
+
 router.put('/update-interest/:customerID', async (req, res) => {
   try {
     const loan = await Loan.findOne({ customerID: req.params.customerID });
@@ -475,43 +576,40 @@ router.put('/update-interest/:customerID', async (req, res) => {
       loan.loanDetails.interestRate,
       loan.loanDetails.startDate
     );
-    const totalAmount = loan.loanDetails.amount + accruedInterest;
+    // const totalAmount = loan.loanDetails.amount + accruedInterest;
 
     // Update loan details
     loan.loanDetails.accruedInterest = accruedInterest;
-    loan.loanDetails.totalAmount = totalAmount;
+    // loan.loanDetails.totalAmount = totalAmount;
     loan.updatedAt = new Date();
 
     // Debug top-up history before calculation
     console.log("Top-Up History before calculation:", loan.loanDetails.topUpHistory);
 
     const topUpHistory = loan.loanDetails.topUpHistory || [];
-    const { topUpInterest, topUpTotal, topdownInterest, topdownTotal } = calculateTopUpInterest(
+    const topDownHistory = loan.loanDetails.topDownHistory || [];
+
+      const { topUpInterest, topUpTotal, topdownInterest, topdownTotal, totalInterest, remainingPrincipal } = calculateTopUpInterest(
       loan.loanDetails.amount, 
       loan.loanDetails.interestRate, 
       loan.loanDetails.startDate, 
       topUpHistory, 
-      loan.loanDetails.topDownHistory || []
-
+      topDownHistory,
     );
 
-   
-
-
-    loan.loanDetails.topUpInterest = topUpInterest; 
-    loan.loanDetails.topUpTotal = topUpTotal;
-
-    // Debug calculated values before saving
-    console.log("Top-Up Interest:", topUpInterest);
-    console.log("Top-Up Total:", topUpTotal);
 
     // Update loan details with top-up calculations
     // loan.loanDetails.topUpInterest = topUpInterest;
     // loan.loanDetails.topUpTotal = topUpTotal;
-
-      loan.loanDetails.accruedInterest = topdownInterest;
-      loan.loanDetails.amount = topdownTotal;
+    // Update loan details
+    loan.loanDetails.topUpInterest = topUpInterest;
+    loan.loanDetails.topUpTotal = topUpTotal;
+    loan.loanDetails.topdownInterest = topdownInterest;
+    loan.loanDetails.remainingPrincipal = topdownTotal;
+    loan.loanDetails.accruedInterest = totalInterest ;
+    loan.loanDetails.totalAmount = remainingPrincipal;
     loan.updatedAt = new Date();
+
 
     await loan.save(); // ✅ Now properly saving updates
 
