@@ -29,6 +29,8 @@ const loanProfile = require('./Routes/Loans/loan-profile');
 const evolve = require('./Routes/Loans/evolve');
 const add = require('./Routes/Loans/add');
 const imageRoutes = require("./Routes/dbs/imageRoutes");
+const sigRoute = require('./Routes/Loans/signature/sigRoute');
+
 
 app.use(bodyParser.json());
 
@@ -57,7 +59,7 @@ app.use('/api', loanProfile);
 app.use('/api', evolve);
 
 app.use("/api/images", imageRoutes);
-
+app.use("/api", sigRoute );
 
 
 // Middleware

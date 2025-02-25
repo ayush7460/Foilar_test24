@@ -417,4 +417,31 @@ router.get("/loan-trends", authenticateUser, async (req, res) => {
   }
 });
 
+
+// Fetch customer remark
+router.get("/:customerID/remark", async (req, res) => {
+  try {
+    const customer = await Loan.findOne({ customerID: req.params.customerID });
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json({ remark: customer.loanDetails.remarks });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching remark", error });
+  }
+});
+
+// Update customer remark
+router.put("/:customerID/remark", async (req, res) => {
+  try {
+    const { remarks } = req.body;
+    const customer = await Loan.findOneAndUpdate(
+      { customerID: req.params.customerID },
+      { $set: { "loanDetails.remarks": remarks } }, // ✅ Correct way to update nested field
+      { new: true, upsert: true }
+    );
+    res.json({ message: "Remark updated successfully", customer });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating remark", error });
+  }
+});
+
 module.exports = router;
