@@ -3,30 +3,11 @@ const Customer = require('../../models/Customer');
 const { authenticateUser }  = require('../../middleware/authentication');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { createCanvas } = require("canvas");
 
-const generateAvatarImage = (name) => {
-  const canvas = createCanvas(128, 128);
-  const ctx = canvas.getContext("2d");
-
-  const colors = ["#FF5733", "#33FF57", "#3357FF", "#FF33A8", "#FFBB33", "#8E44AD", "#2E86C1"];
-  const bgColor = colors[Math.floor(Math.random() * colors.length)];
-
-  // Background color
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, 128, 128);
-
-  // Text settings
-  ctx.fillStyle = "#ffffff"; // White text
-  ctx.font = "bold 64px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  // Draw the first letter
-  const firstLetter = name.charAt(0).toUpperCase();
-  ctx.fillText(firstLetter, 64, 64);
-
-  return canvas.toDataURL(); // Return base64 image
+// Function to generate a random color
+const generateRandomColor = () => {
+  const colors = ["FF5733", "33FF57", "3357FF", "FF33A8", "FFBB33", "8E44AD", "2E86C1"];
+  return colors[Math.floor(Math.random() * colors.length)];
 };
 
 
@@ -39,13 +20,13 @@ router.post('/addCustomer', authenticateUser, async (req, res) => {
     if (!name || !phoneNumber) {
       return res.status(400).json({ error: 'All fields are required: customerID, name, phoneNumber' });
     }
-    // if(!ByPhoneNumber){
-    //   return res.status(402).json({error:'ByPhoneNumber is missing in server'})
-    // }
-
-    // Create a new customer
-
-    const profileImage = generateAvatarImage(name); // Generate base64 image
+     // Extract first letter and assign a random color
+     const firstLetter = name.charAt(0).toUpperCase();
+     const bgColor = generateRandomColor();
+ 
+     // Generate avatar URL using `ui-avatars.com`
+     const profileImage = `https://ui-avatars.com/api/?name=${firstLetter}&background=${bgColor}&color=ffffff&size=128&bold=true`;
+ 
 
     const customer = new Customer({
       customerID: uuidv4(),
