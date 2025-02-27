@@ -222,9 +222,9 @@ router.get('/total-amount', authenticateUser, async (req, res) => {
   }
 });
 
-router.get("/latest-loan", async (req, res) => {
+router.get("/latest-loan", authenticateUser, async (req, res) => {
   try {
-    const latestLoan = await Loan.findOne().sort({ createdAt: -1 }); // Get latest loan
+    const latestLoan = await Loan.findOne({addedBy: req.userId}).sort({ createdAt: -1 }); // Get latest loan
     if (!latestLoan) return res.status(404).json({ message: "No loan records found" });
 
     res.json({
