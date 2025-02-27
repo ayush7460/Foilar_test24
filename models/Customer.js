@@ -6,6 +6,8 @@ const customerSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   ByPhoneNumber: { type:Number, required:true },
   userId: { type: String, ref: 'User', required: true },
+  profileImage: {  type: String },
+
 });
 
 module.exports = mongoose.model('Customer', customerSchema);
