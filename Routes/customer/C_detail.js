@@ -32,6 +32,30 @@ router.use('/customer_who_added_me', authenticateUser, async (req, res, next) =>
   }
 });
 
+router.get("/transactions/summary", authenticateUser, async (req, res) => {
+  try {
+    const myPhoneNumber = req.ByPhoneNumber.toString(); // Ensure it's a string
+
+    console.log("Fetching transactions for phone:", myPhoneNumber);
+
+    // Get all received transactions
+    const receivedTransactions = await Transaction.find({ receiver: myPhoneNumber });
+    const totalReceived = receivedTransactions.reduce((acc, txn) => acc + txn.amount, 0);
+
+    // Get all given transactions
+    const givenTransactions = await Transaction.find({ sender: myPhoneNumber });
+    const totalGiven = givenTransactions.reduce((acc, txn) => acc + txn.amount, 0);
+
+    console.log("Total Received:", totalReceived, "Total Given:", totalGiven);
+
+    res.json({ totalReceived, totalGiven, userId: req.userId, });
+  } catch (error) {
+    console.error("Error fetching transaction summary:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+
 
 
 module.exports = router;
