@@ -176,23 +176,81 @@ router.put('/billNo/:customerID', async (req, res) => {
 });  
 
 // Endpoint to calculate totals
+// router.get('/total-amount', authenticateUser, async (req, res) => {
+//   try {
+//     // Aggregate People Owe (loans given)
+//     const peopleOweTotal = await Loan.aggregate([
+//       {
+//         $match: { 
+//           addedBy: req.userId
+//          }, // Example condition, adjust based on schema
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalAmount: { 
+            
+//             $sum: '$loanDetails.amount' },
+//         },
+//       },
+//     ]);
+
+//     // Aggregate You Owe (loans taken)
+//     const youOweTotal = await Loan.aggregate([
+//       {
+//         $match: { 
+//           loanType: 'You Owe',
+//           addedBy: req.userId
+//          }, // Example condition, adjust based on schema
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalAmount: { $sum: '$loanDetails.amount' },
+//         },
+//       },
+//     ]);
+
+//     res.json({
+//       peopleOwe: peopleOweTotal[0]?.totalAmount || 0,
+//       youOwe: youOweTotal[0]?.totalAmount || 0,
+//       userId: req.userId,
+//     });
+//   } catch (error) {
+//     console.error('Error calculating totals:', error);
+//     res.status(500).json({ message: 'Error calculating totals', error });
+//   }
+// });
+
+
 router.get('/total-amount', authenticateUser, async (req, res) => {
   try {
-    // Aggregate People Owe (loans given)
     const peopleOweTotal = await Loan.aggregate([
       {
         $match: { 
           addedBy: req.userId
-         }, // Example condition, adjust based on schema
+        }, // Filter based on user ID
       },
       {
         $group: {
           _id: null,
-          totalAmount: { 
-            
-            $sum: '$loanDetails.amount' },
+          totalAmount: { $sum: '$loanDetails.totalAmount' }, 
+          accruedInterest: { $sum: '$loanDetails.accruedInterest' },
+          topUpInterest: { $sum: '$loanDetails.topUpInterest' },
+          topUpTotal: { $sum: '$loanDetails.topUpTotal' },
+
         },
       },
+      {
+        $project: {
+          _id: 0,
+          totalLoanWithInterest: { $add: ['$totalAmount', '$accruedInterest', '$topUpInterest', '$topUpTotal'] }, // Total sum including interest
+          totalAmount: 1,
+          accruedInterest: 1,
+          topUpInterest: 1,
+          topUpTotal:1,
+        }
+      }
     ]);
 
     // Aggregate You Owe (loans taken)
@@ -212,7 +270,13 @@ router.get('/total-amount', authenticateUser, async (req, res) => {
     ]);
 
     res.json({
-      peopleOwe: peopleOweTotal[0]?.totalAmount || 0,
+      totalAmount: peopleOweTotal[0]?.totalAmount || 0,
+      accruedInterest: peopleOweTotal[0]?.accruedInterest || 0,
+      topUpInterest: peopleOweTotal[0]?.topUpInterest || 0,
+      topUpTotal: peopleOweTotal[0]?.topUpTotal || 0,
+
+      totalLoanWithInterest: peopleOweTotal[0]?.totalLoanWithInterest || 0,
+
       youOwe: youOweTotal[0]?.totalAmount || 0,
       userId: req.userId,
     });
