@@ -3,6 +3,31 @@ const Customer = require('../../models/Customer');
 const { authenticateUser }  = require('../../middleware/authentication');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { createCanvas } = require("canvas");
+
+const generateAvatarImage = (name) => {
+  const canvas = createCanvas(128, 128);
+  const ctx = canvas.getContext("2d");
+
+  const colors = ["#FF5733", "#33FF57", "#3357FF", "#FF33A8", "#FFBB33", "#8E44AD", "#2E86C1"];
+  const bgColor = colors[Math.floor(Math.random() * colors.length)];
+
+  // Background color
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, 128, 128);
+
+  // Text settings
+  ctx.fillStyle = "#ffffff"; // White text
+  ctx.font = "bold 64px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Draw the first letter
+  const firstLetter = name.charAt(0).toUpperCase();
+  ctx.fillText(firstLetter, 64, 64);
+
+  return canvas.toDataURL(); // Return base64 image
+};
 
 
 // Add Customer
@@ -19,12 +44,16 @@ router.post('/addCustomer', authenticateUser, async (req, res) => {
     // }
 
     // Create a new customer
+
+    const profileImage = generateAvatarImage(name); // Generate base64 image
+
     const customer = new Customer({
       customerID: uuidv4(),
       name,
       phoneNumber,
       ByPhoneNumber: req.ByPhoneNumber,
       userId: req.userId,
+      profileImage,
 
     });
 

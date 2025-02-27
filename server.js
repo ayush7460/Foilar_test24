@@ -30,6 +30,7 @@ const evolve = require('./Routes/Loans/evolve');
 const add = require('./Routes/Loans/add');
 const imageRoutes = require("./Routes/dbs/imageRoutes");
 const sigRoute = require('./Routes/Loans/signature/sigRoute');
+const imgRoute = require('./Routes/customer/imageRoute');
 
 
 app.use(bodyParser.json());
@@ -60,6 +61,7 @@ app.use('/api', evolve);
 
 app.use("/api/images", imageRoutes);
 app.use("/api", sigRoute );
+app.use("/api", imgRoute );
 
 
 // Middleware
