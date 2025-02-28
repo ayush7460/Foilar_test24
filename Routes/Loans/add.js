@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Add a customer
 router.post('/add-customer-land', authenticateUser , async (req, res) => {
-  const { name, phoneNumber } = req.body;
+  const { FirstName, LastName, phoneNumber } = req.body;
 
   try {
     // Check if customer already exists
@@ -24,7 +24,8 @@ router.post('/add-customer-land', authenticateUser , async (req, res) => {
     // Create a new customer
     const newCustomer = await CustomerLand.create({
       customerID: uuidv4(), 
-      name, 
+      FirstName,
+      LastName,
       phoneNumber,
       ByPhoneNumber: req.ByPhoneNumber,
       userId: req.userId,
