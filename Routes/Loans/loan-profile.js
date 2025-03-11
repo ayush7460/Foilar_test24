@@ -464,9 +464,28 @@ function calculateAccruedInterest(amount, rate, startDate ) {
 // API to update interest
 
 
-function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, topDownHistory) {
+function calculateTopUpInterest(amount, interestRate, frequency, startDate, topUpHistory, topDownHistory) {
   const today = new Date();
-  const dailyRate = interestRate / 100 / 30; // Daily interest rate
+
+    // ✅ Get the correct number of days per period based on frequency
+    const getDaysInPeriod = (frequency) => {
+      switch (frequency) {
+        case 'Daily': return 1;
+        case 'Weekly': return 7;
+        case '15 Days': return 15;
+        case 'Monthly': return 30;
+        case 'Quarterly': return 90;
+        case 'Half-Yearly': return 180;
+        case 'Yearly': return 365;
+        default: return 30; // Default to Monthly if not specified
+      }
+    };
+  
+    const daysInPeriod = getDaysInPeriod(frequency);
+    const dailyRate = interestRate / 100 / daysInPeriod; // ✅ Adjust rate per period
+
+
+  // const dailyRate = interestRate / 100 / 30; 
 
   let remainingPrincipal = amount;
   let lastInterestCalcDate = new Date(startDate);
@@ -491,11 +510,11 @@ function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, t
           const daysElapsed = Math.floor((today - start) / (1000 * 60 * 60 * 24 ));
       
           const rate = parseFloat(topUp.topupinterestrate) || 0; // Get individual top-up interest rate
-          const dailyRate = rate / 100 / 30;// Convert to daily rate
+          const dailyRatetp = rate / 100 / daysInPeriod;// Convert to daily rate
       
           if (daysElapsed > 0) { 
             // Calculate interest on the existing principal before adding the top-up
-            totalInterest += remainingPrincipal * dailyRate * daysElapsed; 
+            totalInterest += remainingPrincipal * dailyRatetp * daysElapsed; 
         
             // Now, add the top-up amount
             // remainingPrincipal += topUp.amount; 
@@ -563,6 +582,9 @@ function calculateTopUpInterest(amount, interestRate, startDate, topUpHistory, t
   };
 }
 
+
+
+
 router.put('/update-interest/:customerID', async (req, res) => {
   try {
     const loan = await Loan.findOne({ customerID: req.params.customerID });
@@ -588,19 +610,25 @@ router.put('/update-interest/:customerID', async (req, res) => {
 
     const topUpHistory = loan.loanDetails.topUpHistory || [];
     const topDownHistory = loan.loanDetails.topDownHistory || [];
-
-      const { topUpInterest, topUpTotal, topdownInterest, topdownTotal, totalInterest, remainingPrincipal } = calculateTopUpInterest(
+    const frequency = loan.loanDetails.interestFrequency;
+    // Calculate correct interest
+    const { topUpInterest, topUpTotal, topdownInterest, topdownTotal, totalInterest, remainingPrincipal } = calculateTopUpInterest(
       loan.loanDetails.amount, 
-      loan.loanDetails.interestRate, 
+      loan.loanDetails.interestRate,
+      frequency,
       loan.loanDetails.startDate, 
       topUpHistory, 
       topDownHistory,
     );
 
+    // Debugging
+    console.log("Top-Up Interest:", topUpInterest);
+    console.log("Top-Up Total:", topUpTotal);
+    console.log("Top-Down Interest:", topdownInterest);
+    console.log("Top-Down Total:", topdownTotal);
+    console.log("Remaining Principal:", remainingPrincipal);
+    console.log("Remaining totalInterest:", totalInterest);
 
-    // Update loan details with top-up calculations
-    // loan.loanDetails.topUpInterest = topUpInterest;
-    // loan.loanDetails.topUpTotal = topUpTotal;
     // Update loan details
     loan.loanDetails.topUpInterest = topUpInterest;
     loan.loanDetails.topUpTotal = topUpTotal;
@@ -610,8 +638,7 @@ router.put('/update-interest/:customerID', async (req, res) => {
     loan.loanDetails.totalAmount = remainingPrincipal;
     loan.updatedAt = new Date();
 
-
-    await loan.save(); // ✅ Now properly saving updates
+    await loan.save();
 
     res.json({ message: 'Interest updated successfully', loan });
   } catch (error) {
@@ -619,7 +646,6 @@ router.put('/update-interest/:customerID', async (req, res) => {
     res.status(500).json({ message: 'Error updating interest', error });
   }
 });
-
 
 
 
